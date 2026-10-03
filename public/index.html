@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d3b8b">
+<title>Railway Watch</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">🚆 Railway Watch</div>
+  <div class="status" id="conn">connecting…</div>
+  <button id="armBtn" class="btn small" title="Browsers only play sound after you tap something once">🔔 Arm browser alarm</button>
+  <button id="stopAlarmBtn" class="btn danger small hidden">⏹ Stop alarm</button>
+</header>
+
+<main>
+  <section class="card" id="alarmBanner" hidden>
+    <div class="banner"><strong id="alarmTitle"></strong><div id="alarmBody"></div><button class="btn danger" id="stopAlarmBtn2">Stop alarm</button></div>
+  </section>
+
+  <section class="card">
+    <h2>Add a watch</h2>
+    <form id="watchForm" autocomplete="off">
+      <label>Train number <input name="trainNo" inputmode="numeric" pattern="\d{4,5}" placeholder="18101" required list="trainList"><datalist id="trainList"></datalist><small id="trainName"></small></label>
+      <label>Journey date (at boarding station) <input name="date" type="date" required></label>
+      <div class="row">
+        <label>Boarding station <select name="boarding" required><option value="">load route first</option></select></label>
+        <label>Destination <select name="destination"><option value="">—</option></select></label>
+      </div>
+      <div class="row">
+        <label>Class <select name="cls"></select></label>
+        <label>Quota <select name="quota"></select></label>
+        <label>Check every <select name="intervalSec"><option value="30">30 s</option><option value="60" selected>1 min</option><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option></select></label>
+      </div>
+      <div class="row checks">
+        <label class="inline"><input type="checkbox" name="checkChart" checked> Alert when chart is prepared (IRCTC)</label>
+        <label class="inline"><input type="checkbox" name="checkSeat" checked> Alert on seat availability (indianrail.gov.in)</label>
+      </div>
+      <div class="row">
+        <label>Seat alert when <select name="ruleMode">
+          <option value="available">a confirmed seat is AVAILABLE</option>
+          <option value="rac_or_better">RAC or AVAILABLE</option>
+          <option value="wl_below">waitlist at or below…</option>
+          <option value="any_change">the status changes at all</option>
+          <option value="regex">status matches a regex…</option>
+        </select></label>
+        <label id="ruleWlWrap" hidden>WL number <input name="ruleWl" type="number" min="0" value="5"></label>
+        <label id="ruleRegexWrap" hidden>Regex <input name="ruleRegex" placeholder="AVAILABLE|RAC"></label>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn" id="previewBtn">Check once now</button>
+        <button type="submit" class="btn primary">Start watching</button>
+      </div>
+      <pre id="previewOut" class="out" hidden></pre>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Watches <span class="muted" id="statsLine"></span></h2>
+    <div id="watches" class="list"></div>
+  </section>
+
+  <section class="card">
+    <h2>Activity</h2>
+    <div id="events" class="log"></div>
+  </section>
+
+  <section class="card" id="captchaCard">
+    <h2>Captcha trainer <span class="muted" id="captchaStats"></span></h2>
+    <p class="muted">indianrail.gov.in shows a small arithmetic image. The app learns each symbol once from you: type exactly what the image says (for example <code>12+7=?</code> or <code>3x4=?</code>) and it will solve every future captcha made of those symbols by itself.</p>
+    <div id="unknownList"></div>
+    <div class="actions"><button type="button" class="btn small" id="forgetBtn">Forget all learned symbols (use if you taught a typo)</button></div>
+  </section>
+
+  <section class="card">
+    <h2>Settings</h2>
+    <form id="settingsForm">
+      <h3>Telegram</h3>
+      <label class="inline"><input type="checkbox" name="telegram.enabled"> Enabled</label>
+      <label>Bot token <input name="telegram.token" placeholder="123456:ABC… from @BotFather"></label>
+      <label>Chat id <input name="telegram.chatId" placeholder="send your bot a message, then tap Find"> <button type="button" class="btn small" id="findChat">Find chat id</button></label>
+      <h3>Messages (iMessage / SMS from this Mac)</h3>
+      <label class="inline"><input type="checkbox" name="messages.enabled"> Enabled</label>
+      <label>Send to (phone with country code or Apple ID email) <input name="messages.to" placeholder="+919876543210"></label>
+      <label>Service <select name="messages.service"><option value="iMessage">iMessage</option><option value="SMS">SMS (needs iPhone text-forwarding)</option></select></label>
+      <h3>Twilio SMS (optional)</h3>
+      <label class="inline"><input type="checkbox" name="twilio.enabled"> Enabled (set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM in the environment)</label>
+      <label>Send to <input name="twilio.to" placeholder="+919876543210"></label>
+      <h3>Webhook (optional)</h3>
+      <label class="inline"><input type="checkbox" name="webhook.enabled"> Enabled</label>
+      <label>URL (receives JSON) <input name="webhook.url" placeholder="https://…"></label>
+      <h3>Alarm on this machine</h3>
+      <label class="inline"><input type="checkbox" name="alarm.enabled"> Play a loud looping sound on the computer running the app</label>
+      <div class="row">
+        <label>Sound file <input name="alarm.sound"></label>
+        <label>Ring for (seconds) <input name="alarm.durationSec" type="number" min="5"></label>
+        <label>Volume (0-100) <input name="alarm.volume" type="number" min="0" max="100"></label>
+      </div>
+      <label class="inline"><input type="checkbox" name="alarm.forceVolume"> Force system volume before ringing (macOS)</label>
+      <label class="inline"><input type="checkbox" name="alarm.say"> Speak the alert first (macOS "say")</label>
+      <label class="inline"><input type="checkbox" name="browserAlarm"> Also ring in every open browser tab (phone included)</label>
+      <h3>Keep this Mac awake</h3>
+      <label>Mode <select name="keepAwake"><option value="system">Block system sleep (display may dim)</option><option value="display">Block system and display sleep</option><option value="off">Off</option></select></label>
+      <h3>Polling</h3>
+      <div class="row">
+        <label>Default interval (s) <input name="defaultIntervalSec" type="number" min="30"></label>
+        <label>Minimum interval (s) <input name="minIntervalSec" type="number" min="15"></label>
+        <label>Re-notify while matching (min, 0 = once) <input name="renotifyEveryMin" type="number" min="0"></label>
+      </div>
+      <label>indianrail.gov.in field format <select name="indianrail.format"><option value="full">Site labels: "18101 - TATA JAT EXP" / "TATANAGAR JN. - TATA"</option><option value="bare">Bare codes: 18101 / TATA</option></select></label>
+      <div class="actions">
+        <button type="submit" class="btn primary">Save settings</button>
+        <button type="button" class="btn" data-test="telegram">Test Telegram</button>
+        <button type="button" class="btn" data-test="messages">Test Messages</button>
+        <button type="button" class="btn" data-test="twilio">Test Twilio</button>
+        <button type="button" class="btn" data-test="alarm">Test alarm</button>
+        <button type="button" class="btn" data-test="browser">Test browser alarm</button>
+      </div>
+      <div id="settingsOut" class="muted"></div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Diagnostics</h2>
+    <div id="diag" class="muted"></div>
+    <details><summary>Recent upstream requests</summary><pre id="reqLog" class="out"></pre></details>
+  </section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

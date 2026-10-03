@@ -1,0 +1,20 @@
+{
+  "name": "railway-watch",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local web app that watches IRCTC chart preparation and Indian Railways seat availability, and raises alarms via Telegram, Messages and a local sound.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node --test \"test/**/*.test.js\"",
+    "mock": "node scripts/mock-upstream.js",
+    "stress": "node scripts/stress.js",
+    "probe": "node scripts/probe.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "pngjs": "^7.0.0"
+  }
+}
